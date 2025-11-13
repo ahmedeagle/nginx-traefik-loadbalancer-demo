@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Red Container
+  red-app:
+    build:
+      context: ./red
+      dockerfile: Dockerfile
+    container_name: red-app
+    networks:
+      - app-network
+
+  # Blue Container
+  blue-app:
+    build:
+      context: ./blue
+      dockerfile: Dockerfile
+    container_name: blue-app
+    networks:
+      - app-network
+
+  # Green Container
+  green-app:
+    build:
+      context: ./green
+      dockerfile: Dockerfile
+    container_name: green-app
+    networks:
+      - app-network
+
+  # Nginx Load Balancer
+  nginx-lb:
+    image: nginx:alpine
+    container_name: nginx-loadbalancer
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - red-app
+      - blue-app
+      - green-app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

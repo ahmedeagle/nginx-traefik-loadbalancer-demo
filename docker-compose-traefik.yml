@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # Traefik Load Balancer
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik-lb
+    command:
+      # Enable Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Enable API and dashboard
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      # Define entrypoints
+      - "--entrypoints.web.address=:80"
+      # Enable access logs
+      - "--accesslog=true"
+      # Health check configuration
+      - "--ping=true"
+    ports:
+      - "9080:80"       # Application traffic
+      - "9081:8080"     # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - app-network
+
+  # Red Container
+  red-app:
+    build:
+      context: ./red
+      dockerfile: Dockerfile
+    container_name: red-app
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      # Define the service
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+      # Route configuration
+      - "traefik.http.routers.backend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      # Health check
+      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=3s"
+    networks:
+      - app-network
+
+  # Blue Container
+  blue-app:
+    build:
+      context: ./blue
+      dockerfile: Dockerfile
+    container_name: blue-app
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      # Add to the same backend service
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      # Health check
+      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=3s"
+    networks:
+      - app-network
+
+  # Green Container
+  green-app:
+    build:
+      context: ./green
+      dockerfile: Dockerfile
+    container_name: green-app
+    labels:
+      # Enable Traefik
+      - "traefik.enable=true"
+      # Add to the same backend service
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      # Health check
+      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=5s"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=3s"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
